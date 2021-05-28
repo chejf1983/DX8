@@ -491,6 +491,9 @@ public class MainForm extends javax.swing.JFrame {
             public void mouseClicked(java.awt.event.MouseEvent evt) {
                 LB_RunStopMouseClicked(evt);
             }
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                LB_RunStopMouseEntered(evt);
+            }
         });
 
         Tx_time.setHorizontalAlignment(javax.swing.JTextField.RIGHT);
@@ -710,6 +713,10 @@ public class MainForm extends javax.swing.JFrame {
 //            controls[0];
         }
     }//GEN-LAST:event_LB_RunStopMouseClicked
+
+    private void LB_RunStopMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_LB_RunStopMouseEntered
+        // TODO add your handling code here:
+    }//GEN-LAST:event_LB_RunStopMouseEntered
 
     // <editor-fold defaultstate="collapsed" desc="parameter"> 
     // Variables declaration - do not modify//GEN-BEGIN:variables

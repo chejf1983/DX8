@@ -77,16 +77,17 @@ public class DevControl {
     private int keepalivelag = 2000;
     private int collectlag = 2000;//采样间隔
     private boolean start_collect = false;//运行开关
-    private int run_time = -1; //运行时间
+    private int run_time = -1; //运行时间 ms
+    private int run_lag = 100; //ms
     private ListenImp<Boolean> impl;
 
-    public int getRuntime() {
-        return run_time;
+    public void setRuntime(int run_time, ListenImp<Boolean> impl) {
+        this.run_time = run_time * 1000;
+        this.impl = impl;
     }
 
-    public void setRuntime(int run_time, ListenImp<Boolean> impl) {
-        this.run_time = run_time;
-        this.impl = impl;
+    public int getRuntime() {
+        return (int) (this.run_time / 1000);
     }
 
     public boolean isStart_collect() {
@@ -94,6 +95,7 @@ public class DevControl {
     }
 
     public void setStart_collect(boolean start_collect) {
+        last_time = new Date();
         this.start_collect = start_collect;
         if (this.impl != null) {
             impl.Call(start_collect);
@@ -112,6 +114,12 @@ public class DevControl {
     }
 
     private void KeepAlive() throws Exception {
+        if (this.keepalivelag > 0) {
+            this.keepalivelag -= run_lag;
+            return;
+        }
+        this.keepalivelag = 2000;
+
         //其他状态下，开心跳检查重连设备
         for (int j = 0; j < 2; j++) {
             if (ReConnect()) {
@@ -159,11 +167,17 @@ public class DevControl {
         }
         return false;
     }
+//18:05
 
     private boolean wait(int timeout) {
         Date now = new Date();
         if (now.getTime() - last_time.getTime() > timeout) {
-            last_time = now;
+            last_time.setTime(last_time.getTime() + timeout);
+            run_time = run_time - timeout;
+            if (run_time < 0) {
+                run_time = 0;
+                start_collect = false;
+            }
             return true;
         }
         return false;
@@ -175,25 +189,20 @@ public class DevControl {
             //连接状态下，获取数据
             if (GetState() == ControlState.CONNECT) {
                 if (this.start_collect) {
-                    if (this.getRuntime() > 0) {
-                        run_time--;
-                        this.setStart_collect(this.getRuntime() > 0);
-                    }
                     if (wait(collectlag)) {
                         if (!CollectData()) {
                             ChangeState(ControlState.DISCONNECT);
                         }
+                        if (this.impl != null) {
+                            impl.Call(start_collect);
+                        }
                     }
 
                 } else {
-                    if (wait(keepalivelag)) {
-                        KeepAlive();
-                    }
-                }
-            } else if (GetState() == ControlState.DISCONNECT) {
-                if (wait(keepalivelag)) {
                     KeepAlive();
                 }
+            } else if (GetState() == ControlState.DISCONNECT) {
+                KeepAlive();
             }
         } catch (Exception ex) {
             ChangeState(ControlState.DISCONNECT);
@@ -218,7 +227,7 @@ public class DevControl {
                 }
 
                 try {
-                    TimeUnit.SECONDS.sleep(1);
+                    TimeUnit.MILLISECONDS.sleep(run_lag);
                 } catch (InterruptedException ex) {
                     Logger.getLogger(DevMonitor.class.getName()).log(Level.SEVERE, null, ex);
                 }
